@@ -123,34 +123,36 @@ export default function Dashboard() {
       
       const contentStartY = y + 15;
       
-      // LEFT COLUMN (Sidebar - Width: 60)
-      const col1X = 20;
-      const col1Width = 55;
+      // LEFT COLUMN (Sidebar - Width: 55)
+      const col1X = 15;
+      const col1Width = 50;
       let yL = contentStartY;
 
       // Technical Skills
       if (data.skills?.length > 0) {
         yL = drawSectionTitle('Technical Skills', col1X, yL, col1Width);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setTextColor(...textColor);
         data.skills.forEach(skill => {
+          if (yL > 280) { doc.addPage(); yL = 20; }
           doc.text('• ' + skill, col1X, yL);
-          yL += 5;
+          yL += 4.5;
         });
-        yL += 10;
+        yL += 8;
       }
 
       // Education
       if (data.education?.length > 0) {
         yL = drawSectionTitle('Education', col1X, yL, col1Width);
         data.education.forEach(edu => {
+          if (yL > 280) { doc.addPage(); yL = 20; }
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9);
+          doc.setFontSize(8.5);
           doc.setTextColor(0, 0, 0);
           const splitSchool = doc.splitTextToSize(edu.school, col1Width);
           doc.text(splitSchool, col1X, yL);
-          yL += (splitSchool.length * 4.5);
+          yL += (splitSchool.length * 4);
           
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
@@ -160,9 +162,9 @@ export default function Dashboard() {
         });
       }
 
-      // RIGHT COLUMN (Main - Width: 110)
-      const col2X = 85;
-      const col2Width = 105;
+      // RIGHT COLUMN (Main - Width: 120)
+      const col2X = 75; // Increased gap from sidebar
+      const col2Width = 120;
       let yR = contentStartY;
 
       // Professional Summary
@@ -173,42 +175,42 @@ export default function Dashboard() {
         doc.setTextColor(60, 60, 60);
         const splitSummary = doc.splitTextToSize(data.summary, col2Width);
         doc.text(splitSummary, col2X, yR);
-        yR += (splitSummary.length * 5) + 12;
+        yR += (splitSummary.length * 4.5) + 8; // Reduced spacing
       }
 
       // Work Experience
       if (data.experiences?.length > 0) {
         yR = drawSectionTitle('Work Experience', col2X, yR, col2Width);
         data.experiences.forEach(exp => {
-          if (yR > 260) { doc.addPage(); yR = 20; }
+          if (yR > 270) { doc.addPage(); yR = 20; }
           
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(10);
+          doc.setFontSize(9.5);
           doc.setTextColor(0, 0, 0);
           doc.text(exp.role, col2X, yR);
           
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(9);
+          doc.setFontSize(8.5);
           doc.setTextColor(...primaryColor);
           const periodWidth = doc.getTextWidth(exp.period || '');
           doc.text(exp.period || '', col2X + col2Width - periodWidth, yR);
           
-          yR += 5;
+          yR += 4.5;
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(9);
           doc.setTextColor(60, 60, 60);
           doc.text(exp.company, col2X, yR);
           
-          yR += 5;
+          yR += 4.5;
           if (exp.description) {
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8.5);
+            doc.setFontSize(8);
             doc.setTextColor(80, 80, 80);
             const splitDesc = doc.splitTextToSize(exp.description, col2Width);
             doc.text(splitDesc, col2X, yR);
-            yR += (splitDesc.length * 4.5);
+            yR += (splitDesc.length * 4);
           }
-          yR += 8;
+          yR += 5; // Reduced spacing between items
         });
       }
 
@@ -217,30 +219,22 @@ export default function Dashboard() {
         if (yR > 250) { doc.addPage(); yR = 20; }
         yR = drawSectionTitle('Licenses & Certifications', col2X, yR, col2Width);
         data.certifications.forEach(cert => {
+          if (yR > 280) { doc.addPage(); yR = 20; }
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(9);
           doc.setTextColor(0, 0, 0);
           doc.text(cert.name, col2X, yR);
-          yR += 4.5;
+          yR += 4;
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(8);
           doc.setTextColor(...lightGray);
           doc.text(cert.authority || '', col2X, yR);
-          yR += 6;
+          yR += 5;
         });
       }
 
-      // FOOTER
-      const pageCount = doc.internal.getNumberOfPages();
-      for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(180, 180, 180);
-        doc.text(`Score ATS: ${atsScore}/100 | Gerado por One-Click CV`, 105, 285, { align: 'center' });
-      }
-
       doc.save(`${data.name.replace(/\s+/g, '_')}_Resume.pdf`);
-      setStatusMsg(`Currículo Premium gerado com Score ATS: ${atsScore}/100!`);
+      setStatusMsg(`Currículo Premium gerado com sucesso!`);
     } catch (e) {
       console.error(e);
       setStatusMsg('Erro ao gerar PDF: ' + e.message);
