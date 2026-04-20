@@ -142,28 +142,8 @@ export default function Dashboard() {
         yL += 8;
       }
 
-      // Education
-      if (data.education?.length > 0) {
-        yL = drawSectionTitle('Education', col1X, yL, col1Width);
-        data.education.forEach(edu => {
-          if (yL > 280) { doc.addPage(); yL = 20; }
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8.5);
-          doc.setTextColor(0, 0, 0);
-          const splitSchool = doc.splitTextToSize(edu.school, col1Width);
-          doc.text(splitSchool, col1X, yL);
-          yL += (splitSchool.length * 4);
-          
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-          doc.setTextColor(...lightGray);
-          doc.text(edu.degree || '', col1X, yL);
-          yL += 5;
-        });
-      }
-
       // RIGHT COLUMN (Main - Width: 120)
-      const col2X = 75; // Increased gap from sidebar
+      const col2X = 75; 
       const col2Width = 120;
       let yR = contentStartY;
 
@@ -175,7 +155,7 @@ export default function Dashboard() {
         doc.setTextColor(60, 60, 60);
         const splitSummary = doc.splitTextToSize(data.summary, col2Width);
         doc.text(splitSummary, col2X, yR);
-        yR += (splitSummary.length * 4.5) + 8; // Reduced spacing
+        yR += (splitSummary.length * 4.5) + 8;
       }
 
       // Work Experience
@@ -210,8 +190,31 @@ export default function Dashboard() {
             doc.text(splitDesc, col2X, yR);
             yR += (splitDesc.length * 4);
           }
-          yR += 5; // Reduced spacing between items
+          yR += 5;
         });
+        yR += 5;
+      }
+
+      // Education (Moved here)
+      if (data.education?.length > 0) {
+        if (yR > 250) { doc.addPage(); yR = 20; }
+        yR = drawSectionTitle('Education', col2X, yR, col2Width);
+        data.education.forEach(edu => {
+          if (yR > 280) { doc.addPage(); yR = 20; }
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(0, 0, 0);
+          const splitSchool = doc.splitTextToSize(edu.school, col2Width);
+          doc.text(splitSchool, col2X, yR);
+          yR += (splitSchool.length * 4.5);
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(...lightGray);
+          doc.text(edu.degree || '', col2X, yR);
+          yR += 6;
+        });
+        yR += 5;
       }
 
       // Certifications
