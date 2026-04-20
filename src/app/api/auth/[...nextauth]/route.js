@@ -41,6 +41,7 @@ export const authOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET || "temp-secret-for-deployment",
+  debug: true,
 };
 
 const handler = NextAuth(authOptions);
