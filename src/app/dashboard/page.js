@@ -77,94 +77,170 @@ export default function Dashboard() {
       }
 
       const { data, atsScore } = await res.json();
-      setStatusMsg('Gerando arquivo PDF...');
+      setStatusMsg('Gerando arquivo PDF Premium...');
 
       // Import jsPDF dynamically
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
-      let y = 20;
+      const primaryColor = [26, 58, 110]; // #1a3a6e
+      const textColor = [34, 34, 34];
+      const lightGray = [120, 120, 120];
 
-      // Header
-      doc.setFontSize(22);
-      doc.setTextColor(0, 0, 0);
-      doc.text(data.name || 'User', 20, y);
-      y += 10;
-      
-      doc.setFontSize(12);
-      doc.setTextColor(100, 100, 100);
-      doc.text(data.headline || '', 20, y);
-      y += 10;
-
-      // Contact
-      doc.setFontSize(10);
-      const contacts = [data.email, data.phone, data.linkedin].filter(Boolean).join(' | ');
-      doc.text(contacts, 20, y);
-      y += 15;
-
-      // Summary
-      if (data.summary) {
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('RESUMO PROFISSIONAL', 20, y);
-        y += 7;
+      // Helper for sections
+      const drawSectionTitle = (title, x, y, width) => {
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.setTextColor(60, 60, 60);
-        const splitSummary = doc.splitTextToSize(data.summary, 170);
-        doc.text(splitSummary, 20, y);
-        y += (splitSummary.length * 5) + 10;
+        doc.setTextColor(...primaryColor);
+        doc.text(title.toUpperCase(), x, y);
+        doc.setDrawColor(...primaryColor);
+        doc.setLineWidth(0.5);
+        doc.line(x, y + 2, x + width, y + 2);
+        return y + 10;
+      };
+
+      // HEADER
+      let y = 20;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.setTextColor(0, 0, 0);
+      doc.text(data.name || 'SEU NOME', 105, y, { align: 'center' });
+      
+      y += 10;
+      doc.setFontSize(11);
+      doc.setTextColor(...primaryColor);
+      doc.text(data.headline || '', 105, y, { align: 'center' });
+      
+      y += 8;
+      doc.setFontSize(9);
+      doc.setTextColor(...textColor);
+      const contactInfo = [data.email, data.phone, data.linkedin ? 'linkedin.com/in/' + data.linkedin.replace(/.*\/in\//, '') : '', data.github ? 'github.com/' + data.github.replace(/.*github\.com\//, '') : ''].filter(Boolean).join('  |  ');
+      doc.text(contactInfo, 105, y, { align: 'center' });
+      
+      y += 10;
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.8);
+      doc.line(20, y, 190, y);
+      
+      const contentStartY = y + 15;
+      
+      // LEFT COLUMN (Sidebar - Width: 60)
+      const col1X = 20;
+      const col1Width = 55;
+      let yL = contentStartY;
+
+      // Technical Skills
+      if (data.skills?.length > 0) {
+        yL = drawSectionTitle('Technical Skills', col1X, yL, col1Width);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...textColor);
+        data.skills.forEach(skill => {
+          doc.text('• ' + skill, col1X, yL);
+          yL += 5;
+        });
+        yL += 10;
       }
 
-      // Experience
-      if (data.experiences?.length > 0) {
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('EXPERIÊNCIA PROFISSIONAL', 20, y);
-        y += 7;
-
-        data.experiences.forEach(exp => {
-          if (y > 270) { doc.addPage(); y = 20; }
-          doc.setFontSize(11);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`${exp.role} @ ${exp.company}`, 20, y);
-          y += 5;
+      // Education
+      if (data.education?.length > 0) {
+        yL = drawSectionTitle('Education', col1X, yL, col1Width);
+        data.education.forEach(edu => {
+          doc.setFont('helvetica', 'bold');
           doc.setFontSize(9);
-          doc.setTextColor(120, 120, 120);
-          doc.text(exp.period || '', 20, y);
-          y += 7;
+          doc.setTextColor(0, 0, 0);
+          const splitSchool = doc.splitTextToSize(edu.school, col1Width);
+          doc.text(splitSchool, col1X, yL);
+          yL += (splitSchool.length * 4.5);
           
-          if (exp.description) {
-            doc.setFontSize(9);
-            doc.setTextColor(60, 60, 60);
-            const splitDesc = doc.splitTextToSize(exp.description, 170);
-            doc.text(splitDesc, 20, y);
-            y += (splitDesc.length * 5) + 5;
-          }
-          y += 5;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(...lightGray);
+          doc.text(edu.degree || '', col1X, yL);
+          yL += 5;
         });
       }
 
-      // Skills
-      if (data.skills?.length > 0) {
-        if (y > 250) { doc.addPage(); y = 20; }
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('COMPETÊNCIAS', 20, y);
-        y += 7;
-        doc.setFontSize(10);
+      // RIGHT COLUMN (Main - Width: 110)
+      const col2X = 85;
+      const col2Width = 105;
+      let yR = contentStartY;
+
+      // Professional Summary
+      if (data.summary) {
+        yR = drawSectionTitle('Professional Summary', col2X, yR, col2Width);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
         doc.setTextColor(60, 60, 60);
-        const skillsText = data.skills.join(', ');
-        const splitSkills = doc.splitTextToSize(skillsText, 170);
-        doc.text(splitSkills, 20, y);
-        y += (splitSkills.length * 5) + 10;
+        const splitSummary = doc.splitTextToSize(data.summary, col2Width);
+        doc.text(splitSummary, col2X, yR);
+        yR += (splitSummary.length * 5) + 12;
       }
 
-      // Footer - ATS Score
-      doc.setFontSize(8);
-      doc.setTextColor(180, 180, 180);
-      doc.text(`Score ATS: ${atsScore}/100 | Gerado por One-Click CV`, 20, 285);
+      // Work Experience
+      if (data.experiences?.length > 0) {
+        yR = drawSectionTitle('Work Experience', col2X, yR, col2Width);
+        data.experiences.forEach(exp => {
+          if (yR > 260) { doc.addPage(); yR = 20; }
+          
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+          doc.text(exp.role, col2X, yR);
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(...primaryColor);
+          const periodWidth = doc.getTextWidth(exp.period || '');
+          doc.text(exp.period || '', col2X + col2Width - periodWidth, yR);
+          
+          yR += 5;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(60, 60, 60);
+          doc.text(exp.company, col2X, yR);
+          
+          yR += 5;
+          if (exp.description) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(80, 80, 80);
+            const splitDesc = doc.splitTextToSize(exp.description, col2Width);
+            doc.text(splitDesc, col2X, yR);
+            yR += (splitDesc.length * 4.5);
+          }
+          yR += 8;
+        });
+      }
+
+      // Certifications
+      if (data.certifications?.length > 0) {
+        if (yR > 250) { doc.addPage(); yR = 20; }
+        yR = drawSectionTitle('Licenses & Certifications', col2X, yR, col2Width);
+        data.certifications.forEach(cert => {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(0, 0, 0);
+          doc.text(cert.name, col2X, yR);
+          yR += 4.5;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(...lightGray);
+          doc.text(cert.authority || '', col2X, yR);
+          yR += 6;
+        });
+      }
+
+      // FOOTER
+      const pageCount = doc.internal.getNumberOfPages();
+      for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(180, 180, 180);
+        doc.text(`Score ATS: ${atsScore}/100 | Gerado por One-Click CV`, 105, 285, { align: 'center' });
+      }
 
       doc.save(`${data.name.replace(/\s+/g, '_')}_Resume.pdf`);
-      setStatusMsg(`Currículo gerado com Score ATS: ${atsScore}/100!`);
+      setStatusMsg(`Currículo Premium gerado com Score ATS: ${atsScore}/100!`);
     } catch (e) {
       console.error(e);
       setStatusMsg('Erro ao gerar PDF: ' + e.message);
