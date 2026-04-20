@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setStatusMsg('Gerando seu currículo... pode levar até 30 segundos.');
+    setStatusMsg('Obtendo dados do LinkedIn e otimizando para ATS...');
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -71,19 +71,100 @@ export default function Dashboard() {
           setIsGenerating(false);
           return;
         }
-        throw new Error(err.error || 'Failed');
+        throw new Error(err.error || 'Falha ao processar perfil');
       }
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'my-resume.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setStatusMsg('Currículo baixado com sucesso.');
+      const { data, atsScore } = await res.json();
+      setStatusMsg('Gerando arquivo PDF...');
+
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      let y = 20;
+
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(0, 0, 0);
+      doc.text(data.name || 'User', 20, y);
+      y += 10;
+      
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(data.headline || '', 20, y);
+      y += 10;
+
+      // Contact
+      doc.setFontSize(10);
+      const contacts = [data.email, data.phone, data.linkedin].filter(Boolean).join(' | ');
+      doc.text(contacts, 20, y);
+      y += 15;
+
+      // Summary
+      if (data.summary) {
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('RESUMO PROFISSIONAL', 20, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        const splitSummary = doc.splitTextToSize(data.summary, 170);
+        doc.text(splitSummary, 20, y);
+        y += (splitSummary.length * 5) + 10;
+      }
+
+      // Experience
+      if (data.experiences?.length > 0) {
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('EXPERIÊNCIA PROFISSIONAL', 20, y);
+        y += 7;
+
+        data.experiences.forEach(exp => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFontSize(11);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`${exp.role} @ ${exp.company}`, 20, y);
+          y += 5;
+          doc.setFontSize(9);
+          doc.setTextColor(120, 120, 120);
+          doc.text(exp.period || '', 20, y);
+          y += 7;
+          
+          if (exp.description) {
+            doc.setFontSize(9);
+            doc.setTextColor(60, 60, 60);
+            const splitDesc = doc.splitTextToSize(exp.description, 170);
+            doc.text(splitDesc, 20, y);
+            y += (splitDesc.length * 5) + 5;
+          }
+          y += 5;
+        });
+      }
+
+      // Skills
+      if (data.skills?.length > 0) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('COMPETÊNCIAS', 20, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        const skillsText = data.skills.join(', ');
+        const splitSkills = doc.splitTextToSize(skillsText, 170);
+        doc.text(splitSkills, 20, y);
+        y += (splitSkills.length * 5) + 10;
+      }
+
+      // Footer - ATS Score
+      doc.setFontSize(8);
+      doc.setTextColor(180, 180, 180);
+      doc.text(`Score ATS: ${atsScore}/100 | Gerado por One-Click CV`, 20, 285);
+
+      doc.save(`${data.name.replace(/\s+/g, '_')}_Resume.pdf`);
+      setStatusMsg(`Currículo gerado com Score ATS: ${atsScore}/100!`);
     } catch (e) {
+      console.error(e);
       setStatusMsg('Erro ao gerar PDF: ' + e.message);
     } finally {
       setIsGenerating(false);

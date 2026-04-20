@@ -68,19 +68,17 @@ export async function POST(req) {
     const { optimizedData, scoreReport } = optimizeForATS(profileData);
     console.log(`ATS Score: ${scoreReport.totalScore}/100`);
 
-    const html = ResumeTemplate({ data: optimizedData, atsScore: scoreReport.totalScore });
-    const pdfBuffer = await generatePDF(html);
-
-    return new Response(pdfBuffer, {
+    return new Response(JSON.stringify({ 
+      success: true,
+      data: optimizedData,
+      atsScore: scoreReport.totalScore 
+    }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="resume.pdf"',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('API Error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to generate PDF' }), {
+    return new Response(JSON.stringify({ error: error.message || 'Failed to generate data' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
